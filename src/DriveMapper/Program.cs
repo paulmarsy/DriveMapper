@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.ComponentModel;
+using System.Text;
 using Microsoft.Win32;
 using System;
 using System.Windows.Forms;
@@ -8,14 +9,15 @@ namespace DriveMapper
     static class Program
     {
         [STAThread]
-        static void Main()
+        private static void Main()
         {
             foreach (var mappedDriveConfig in MappedDriveConfig.GetAllConfigItems())
             {
                 var log = new StringBuilder();
                 try
                 {
-                    log.AppendFormat("Preparing to map {0} to {1}:\\", mappedDriveConfig.Share, mappedDriveConfig.DriveLetter);
+                    log.AppendFormat("Preparing to map {0} to {1}:\\", mappedDriveConfig.Share,
+                        mappedDriveConfig.DriveLetter);
                     var networkDrive = new NetworkDrive
                     {
                         Persistent = mappedDriveConfig.Persistent,
@@ -33,17 +35,31 @@ namespace DriveMapper
 
                     SetNetworkDriveLabel(mappedDriveConfig.Share, mappedDriveConfig.Label);
 
-                    log.AppendFormat("Successfully mapped and renamed network drive {0}:\\", mappedDriveConfig.DriveLetter);
+                    log.AppendFormat("Successfully mapped and renamed network drive {0}:\\",
+                        mappedDriveConfig.DriveLetter);
+                }
+                catch (Win32Exception e)
+                {
+                    MessageBox.Show(
+                        string.Format("Error: {0}\nNative Error Code: {1}\nInternal log:\n---\n{2}\n---\nStack Trace:\n{3}",
+                            e.Message,
+                            e.NativeErrorCode,
+                            log,
+                            e.StackTrace
+                            ), string.Format("Mapping network drive {0}:\\ failed", mappedDriveConfig.DriveLetter),
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
                 catch (Exception e)
                 {
-                    MessageBox.Show(string.Format("Error: {0}\n{1}\nInternal log:\n{2}\nStack Trace:\n{3}",
-                        e.Message,
-                        e.InnerException != null ? e.InnerException.Message : "No Inner Exception",
-                        log,
-                        e.StackTrace
-                        ), string.Format("Mapping network drive {0}:\\ failed", mappedDriveConfig.DriveLetter), MessageBoxButtons.OK, MessageBoxIcon.Error);
-                }   
+                    MessageBox.Show(
+                        string.Format("Error: {0}\n{1}\nInternal log:\n---\n{2}\n---\nStack Trace:\n{3}",
+                            e.Message,
+                            e.InnerException != null ? e.InnerException.Message : "No Inner Exception",
+                            log,
+                            e.StackTrace
+                            ), string.Format("Mapping network drive {0}:\\ failed", mappedDriveConfig.DriveLetter),
+                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
             }
         }
 
